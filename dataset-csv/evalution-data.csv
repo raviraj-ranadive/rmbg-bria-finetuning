@@ -1,0 +1,5 @@
+,images_path,masks_path
+0,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_11.png,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_11_mask.png
+1,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_22.png,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_22_mask.png
+2,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_33.png,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_33_mask.png
+3,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_44.png,d:\s3_dataset_entire\RMBG_finetune\evaluation\podium-bgrm_44_mask.png

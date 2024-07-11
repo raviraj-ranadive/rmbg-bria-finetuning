@@ -1,0 +1,9 @@
+torch
+torchvision
+pillow
+numpy
+typing
+gitpython
+huggingface_hub
+safetensors
+### wget -O model.pth  https://huggingface.co/briaai/RMBG-1.4/resolve/main/model.pth?download=true
