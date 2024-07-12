@@ -4,6 +4,8 @@ from PIL import Image
 from briarmbg import BriaRMBG
 from utilities import preprocess_image, postprocess_image
 from huggingface_hub import hf_hub_download
+from skimage.color import rgba2rgb, gray2rgb
+
 
 def example_inference(image_path, net):
     im_path = image_path
@@ -13,9 +15,18 @@ def example_inference(image_path, net):
     # prepare input
     model_input_size = [1024,1024]
     orig_im = io.imread(im_path)
+    # Convert to RGB if image is grayscale
+    if len(orig_im.shape) == 2 or orig_im.shape[2] == 1:
+        orig_im = gray2rgb(orig_im)
+
+    # Convert to RGB if image is RGBA
+    if orig_im.shape[2] == 4:
+        orig_im = rgba2rgb(orig_im)
+
+
     orig_im_size = orig_im.shape[0:2]
     image = preprocess_image(orig_im, model_input_size).to(device)
-    print(image.shape)
+    # print(image.shape)
     # inference 
     result=net(image)
     del net
@@ -33,5 +44,5 @@ def example_inference(image_path, net):
     return pil_im
 
 
-if __name__ == "__main__":
-    example_inference()
+# if __name__ == "__main__":
+#     example_inference()

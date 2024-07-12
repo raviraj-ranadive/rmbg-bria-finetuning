@@ -84,7 +84,7 @@ def log_evaluation_images(model, image_paths, true_mask_paths, epoch):
             image_np_list.append(img_np)
             mask_np_list.append(mask_np)
             pred_mask_np_list.append(pred_mask_np)
-
+        model.train()
         return image_np_list, mask_np_list, pred_mask_np_list 
 
 def finetune_model(image_dir, mask_dir, model_path, epochs, batch_size, learning_rate):
@@ -97,38 +97,48 @@ def finetune_model(image_dir, mask_dir, model_path, epochs, batch_size, learning
 
     # Load local weights(.pth)
     model = BriaRMBG()
-    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    if model_path:
+        print("Loading pretrained model. from :", model_path)
+        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+        
+
     model = model.to(device)
     
     # Optimizer and loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
     criterion = nn.BCEWithLogitsLoss()
 
     # Train loop
     model.train()
     for epoch in range(epochs):
         epoch_loss = 0.0
-        
-        for images, masks in dataloader:
-            images = images.to(device)
-            masks = masks.to(device)
 
-            optimizer.zero_grad()
-            outputs = model(images)[0][0]
-            
-            loss = criterion(outputs, masks)
-            loss.backward()
-            optimizer.step()
-            
-            epoch_loss += loss.item()
-            
+        # Wrap DataLoader with tqdm for progress bar
+        with tqdm(dataloader, desc=f'Epoch {epoch+1}/{epochs}', unit='batch') as dataloader_desc:
+            for images, masks in dataloader_desc:
+                images = images.to(device)
+                masks = masks.to(device)
+
+                optimizer.zero_grad()
+                outputs = model(images)[0][0]
+
+                loss = criterion(outputs, masks)
+                loss.backward()
+                optimizer.step()
+
+                epoch_loss += loss.item()
+
+                # Update tqdm description with current loss
+                dataloader_desc.set_postfix(loss=loss.item())
+
         avg_epoch_loss = epoch_loss / len(dataloader)   
         # Log the loss to wandb
         wandb.log({"epoch": epoch+1, "loss": avg_epoch_loss})
 
-        print(f'Epoch {epoch+1}/{epochs}, Loss: {avg_epoch_loss}')
+        print(f'Epoch {epoch+1}/{epochs}, Avg Loss: {avg_epoch_loss}')
 
-        if (epoch + 1) % 10 == 0:
+        if (epoch) % 3 == 0:
             image_np_list, mask_np_list, pred_mask_np_list = log_evaluation_images(model, eval_img_list, eval_masks_list, epoch)
 
             # Log the images to wandb
@@ -143,10 +153,11 @@ def finetune_model(image_dir, mask_dir, model_path, epochs, batch_size, learning
     torch.save(model.state_dict(), './weight_files_checkpoints/final-finetuned-model.pth')
     del model
 
+
 def main():
     # Load datasets
-    df_cleaned_train = pd.read_csv(".\\dataset-csv\\cleaned_train_data.csv")
-    evaluation_df = pd.read_csv("./dataset-csv/evalution-data.csv")
+    df_cleaned_train = pd.read_csv(".\\dataset-csv\\combined_train_data.csv")
+    evaluation_df = pd.read_csv(".\\dataset-csv\\evalution-data.csv")
 
     images_paths_list = df_cleaned_train["images_path"]
     masks_paths_list = df_cleaned_train["masks_path"]
@@ -158,7 +169,7 @@ def main():
     # Launch FineTuning
     finetune_model(image_dir=images_paths_list,
                    mask_dir=masks_paths_list,
-                   model_path='./model.pth',
+                   model_path=None,
                    epochs=500,
                    batch_size=8,
                    learning_rate=1e-4)
